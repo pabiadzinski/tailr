@@ -153,13 +153,23 @@ header .trace-search { margin: 0; width: 240px; flex: none; }
 @keyframes pulse { 50% { opacity: .3; } }
 
 .toolbar {
-  display: flex; align-items: center; gap: 8px;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
   padding: 8px 20px; border-bottom: 1px solid var(--line); background: var(--panel);
 }
 .toolbar .search { margin: 0; flex: 1; min-width: 180px; max-width: 460px; background: var(--bg); }
+.toolbar .exclude { flex: 0 1 auto; min-width: 140px; max-width: 260px; }
+.toolbar .exclude input { min-width: 50px; }
+#excludes { display: flex; gap: 4px; min-width: 0; overflow: hidden; }
+#excludes button {
+  font: 11px var(--mono); color: var(--muted); background: var(--panel-2);
+  border: 0; border-radius: 4px; padding: 1px 6px; cursor: pointer; white-space: nowrap;
+  min-width: 0; overflow: hidden; text-overflow: ellipsis;
+}
+#excludes button::after { content: " ×"; color: var(--faint); }
+#excludes button:hover { color: var(--err); text-decoration: line-through; }
 .search .icon-btn { width: 22px; height: 22px; }
 .search .icon-btn svg { color: inherit; }
-.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg { flex: none; display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
 .seg button {
   background: none; border: 0; padding: 5px 10px; cursor: pointer; color: var(--muted);
   border-right: 1px solid var(--line);

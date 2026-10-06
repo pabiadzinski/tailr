@@ -46,3 +46,28 @@ test("search highlights and navigates without filtering", async ({ page }) => {
   await expect(hits).toHaveText("");
   await expect(page.locator("#rows mark")).toHaveCount(0);
 });
+
+test("excludes lines matching any of several patterns", async ({ page }) => {
+  const exclude = page.locator("#exclude");
+  const chips = page.locator("#excludes button");
+  const counter = page.locator("#counter");
+
+  await exclude.fill("needle");
+  await exclude.press("Enter");
+  await expect(counter).toHaveText("4995 / 5000 lines");
+
+  await exclude.fill("/^line \\d$/");
+  await exclude.press("Enter");
+  await expect(chips).toHaveText(["needle", "/^line \\d$/"]);
+  await expect(counter).toHaveText("4986 / 5000 lines");
+
+  await page.reload();
+  await page.selectOption("#tail", "10000");
+  await expect(counter).toHaveText("4986 / 5000 lines");
+
+  await exclude.press("Backspace");
+  await expect(counter).toHaveText("4995 / 5000 lines");
+  await chips.first().click();
+  await expect(chips).toHaveCount(0);
+  await expect(counter).toHaveText("5000 lines");
+});

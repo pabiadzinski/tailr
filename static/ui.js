@@ -8,15 +8,16 @@ function applyTheme(t) {
   else delete document.documentElement.dataset.theme;
 }
 
+// Text or /regex/flags; null when empty or invalid.
+function parsePattern(v) {
+  if (!v) return null;
+  const m = v.match(/^\/(.+)\/([a-z]*)$/);
+  try { return m ? new RegExp(m[1], m[2].replace(/[gy]/g, "")) : new RegExp(RegExp.escape(v), "i"); }
+  catch { return null; }
+}
+
 function setFilter(v) {
-  v = v.trim();
-  let re = null;
-  if (v) {
-    const m = v.match(/^\/(.+)\/([a-z]*)$/);
-    try { re = m ? new RegExp(m[1], m[2].replace(/[gy]/g, "")) : new RegExp(RegExp.escape(v), "i"); }
-    catch { re = null; }
-  }
-  state.filter = re;
+  state.filter = parsePattern(v.trim());
   state.hit = null;
   rerenderAll();
   refilter();
@@ -32,6 +33,19 @@ function toggle(btnSel, key, def, onChange) {
   };
   apply(store.get(key, def) === "1");
   btn.onclick = () => apply(!btn.classList.contains("on"));
+}
+
+function setExcludes(list) {
+  state.exclude = list.map((src) => ({ src, re: parsePattern(src) })).filter((e) => e.re);
+  store.set("exclude", JSON.stringify(state.exclude.map((e) => e.src)));
+  $("#excludes").replaceChildren(...state.exclude.map((e) => {
+    const b = document.createElement("button");
+    b.textContent = e.src;
+    b.title = `Remove ${e.src}`;
+    b.onclick = () => setExcludes(state.exclude.filter((x) => x !== e).map((x) => x.src));
+    return b;
+  }));
+  refilter();
 }
 
 export function initUi() {
@@ -64,6 +78,20 @@ export function initUi() {
     else jump(e.shiftKey ? -1 : 1);
   };
   $("#t-history").onclick = historySearch;
+  try { setExcludes(JSON.parse(store.get("exclude", "[]"))); } catch { setExcludes([]); }
+  $("#exclude").onkeydown = (e) => {
+    const input = e.target, v = input.value.trim(), srcs = state.exclude.map((x) => x.src);
+    if (e.key === "Enter" && v) {
+      e.preventDefault();
+      if (!parsePattern(v)) return;
+      if (!srcs.includes(v)) setExcludes([...srcs, v]);
+      input.value = "";
+    } else if (e.key === "Backspace" && !input.value && srcs.length) {
+      setExcludes(srcs.slice(0, -1));
+    } else if (e.key === "Escape") {
+      input.blur();
+    }
+  };
   $("#back-live").onclick = leaveSearch;
   $("#trace").onkeydown = (e) => {
     const id = e.target.value.trim();

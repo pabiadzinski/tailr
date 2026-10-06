@@ -23,6 +23,8 @@ export const state = {
   hit: null,
   filter: null,
   filterMode: false,
+  // Lines matching any of these are hidden.
+  exclude: [],
   level: "",
   follow: true,
 };
