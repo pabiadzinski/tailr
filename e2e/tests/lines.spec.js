@@ -55,7 +55,7 @@ test("expands JSON with syntax highlighting and copies it", async ({ page }) => 
 });
 
 test("hides columns and JSON fields", async ({ page }) => {
-  await page.goto("/#@e2e");
+  await page.goto("/#e2e-json-1,e2e-text-1");
   const failed = page.locator("#rows .row", { hasText: "job failed" });
   await expect(failed.locator(".msg")).toHaveText("json-1job failed  job=31 err=context deadline exceeded");
 
