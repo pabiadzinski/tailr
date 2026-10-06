@@ -37,6 +37,7 @@ Open http://localhost:8080. Images are built for `linux/amd64` and `linux/arm64`
 - **Search:** Enter / Shift+Enter jump between matches, the funnel shows only matching lines, Alt+Enter searches the whole history. `/` focuses the search, Esc clears it.
 - **Exclude:** hide lines with a text or `/regex/`, Enter adds a pattern, several can be set. Click a pattern or press Backspace in the empty box to remove it.
 - **Traces:** click a trace id in a line, or paste one into "Find trace ID". Recognized as `trace_id`, `traceId`, `trace-id` or `trace.id`.
+- **Columns:** the columns button hides the time, level or container column, and keys of JSON lines you don't want to see.
 - **Lines:** click a JSON line to expand it, hover a line to copy it.
 
 ## Configuration

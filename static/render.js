@@ -36,9 +36,10 @@ function jsonToHtml(plain, layout) {
   const obj = JSON.parse(plain);
   const msg = layout.msg ? valueText(obj[layout.msg]) : "";
   let html = highlight(msg);
-  if (layout.fields.length) {
+  const fields = layout.fields.filter((k) => !state.hiddenFields.has(k));
+  if (fields.length) {
     html += (msg ? "  " : "") + '<span class="kv">' +
-      layout.fields.map((k) => `<b>${esc(k)}=</b>${highlight(valueText(obj[k]))}`).join(" ") + "</span>";
+      fields.map((k) => `<b>${esc(k)}=</b>${highlight(valueText(obj[k]))}`).join(" ") + "</span>";
   }
   return html;
 }

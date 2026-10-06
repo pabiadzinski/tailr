@@ -53,3 +53,29 @@ test("expands JSON with syntax highlighting and copies it", async ({ page }) => 
   await failed.locator(".copy").click();
   expect(await clipboard()).toBe(raw);
 });
+
+test("hides columns and JSON fields", async ({ page }) => {
+  await page.goto("/#@e2e");
+  const failed = page.locator("#rows .row", { hasText: "job failed" });
+  await expect(failed.locator(".msg")).toHaveText("json-1job failed  job=31 err=context deadline exceeded");
+
+  await page.locator("#t-cols").click();
+  for (const col of ["ts", "lvl", "src"]) await page.locator(`#col-${col}`).uncheck();
+  for (const sel of [".ts", ".lvl", ".src"]) await expect(failed.locator(sel)).toBeHidden();
+
+  for (const key of ["job", "err"]) {
+    await page.locator("#hide-field").fill(key);
+    await page.locator("#hide-field").press("Enter");
+  }
+  await expect(failed.locator(".msg")).toHaveText("json-1job failed");
+
+  await page.reload();
+  await expect(failed.locator(".lvl")).toBeHidden();
+  await expect(failed.locator(".msg")).toHaveText("json-1job failed");
+
+  await page.locator("#t-cols").click();
+  await page.locator("#col-lvl").check();
+  await page.locator("#hidden-fields button", { hasText: "err" }).click();
+  await expect(failed.locator(".lvl")).toHaveText("ERR");
+  await expect(failed.locator(".msg")).toHaveText("json-1job failed  err=context deadline exceeded");
+});

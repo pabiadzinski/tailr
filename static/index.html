@@ -61,7 +61,7 @@
     </div>
     <div class="search exclude">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg>
-      <span id="excludes"></span>
+      <span class="chips" id="excludes"></span>
       <input id="exclude" placeholder="Exclude" title="Hide lines with this text or /regex/. Enter adds it, Backspace removes the last one" autocomplete="off" spellcheck="false">
     </div>
     <div class="seg" id="levels">
@@ -80,9 +80,18 @@
     <span class="grow"></span>
     <button class="err-chip" id="t-errors" hidden></button>
     <span class="counter" id="counter"></span>
-    <button class="icon-btn on" id="t-ts" title="Timestamps">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+    <button class="icon-btn" id="t-cols" popovertarget="cols" title="Columns">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M15 4v16"/></svg>
     </button>
+    <div id="cols" popover>
+      <label><input type="checkbox" id="col-ts"> Time</label>
+      <label><input type="checkbox" id="col-lvl"> Level</label>
+      <label><input type="checkbox" id="col-src"> Container</label>
+      <div class="search">
+        <span class="chips" id="hidden-fields"></span>
+        <input id="hide-field" placeholder="Hide JSON field" title="Enter hides this key of JSON lines, Backspace shows the last one again" autocomplete="off" spellcheck="false">
+      </div>
+    </div>
     <button class="icon-btn on" id="t-wrap" title="Wrap lines">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h15a3 3 0 0 1 0 6h-4m2-2-2 2 2 2M3 18h7"/></svg>
     </button>
@@ -124,7 +133,7 @@
     <tr><td><kbd>g</kbd> <kbd>G</kbd></td><td>Oldest line / latest line and follow</td></tr>
     <tr><th colspan="2">View</th></tr>
     <tr><td><kbd>0</kbd> <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> <kbd>4</kbd></td><td>All levels, error, warn, info, debug</td></tr>
-    <tr><td><kbd>w</kbd> <kbd>t</kbd></td><td>Wrap lines, timestamps</td></tr>
+    <tr><td><kbd>w</kbd> <kbd>t</kbd></td><td>Wrap lines, time column</td></tr>
     <tr><td><kbd>?</kbd></td><td>This help</td></tr>
   </table>
 </dialog>

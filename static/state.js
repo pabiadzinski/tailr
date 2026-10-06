@@ -25,6 +25,8 @@ export const state = {
   filterMode: false,
   // Lines matching any of these are hidden.
   exclude: [],
+  // JSON keys not shown as fields.
+  hiddenFields: new Set(),
   level: "",
   follow: true,
 };

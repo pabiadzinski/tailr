@@ -35,17 +35,46 @@ function toggle(btnSel, key, def, onChange) {
   btn.onclick = () => apply(!btn.classList.contains("on"));
 }
 
-function setExcludes(list) {
-  state.exclude = list.map((src) => ({ src, re: parsePattern(src) })).filter((e) => e.re);
-  store.set("exclude", JSON.stringify(state.exclude.map((e) => e.src)));
-  $("#excludes").replaceChildren(...state.exclude.map((e) => {
-    const b = document.createElement("button");
-    b.textContent = e.src;
-    b.title = `Remove ${e.src}`;
-    b.onclick = () => setExcludes(state.exclude.filter((x) => x !== e).map((x) => x.src));
-    return b;
-  }));
-  refilter();
+// Values entered one at a time and shown as removable chips, kept in the store under key.
+function chipInput(inputSel, chipsSel, key, onChange, valid = () => true) {
+  const input = $(inputSel);
+  let list = [];
+  const set = (next) => {
+    list = next;
+    store.set(key, JSON.stringify(list));
+    $(chipsSel).replaceChildren(...list.map((v) => {
+      const b = document.createElement("button");
+      b.textContent = v;
+      b.title = `Remove ${v}`;
+      b.onclick = () => set(list.filter((x) => x !== v));
+      return b;
+    }));
+    onChange(list);
+  };
+  try { set(JSON.parse(store.get(key, "[]"))); } catch { set([]); }
+  input.addEventListener("keydown", (e) => {
+    const v = input.value.trim();
+    if (e.key === "Enter" && v) {
+      e.preventDefault();
+      if (!valid(v)) return;
+      if (!list.includes(v)) set([...list, v]);
+      input.value = "";
+    } else if (e.key === "Backspace" && !input.value && list.length) {
+      set(list.slice(0, -1));
+    } else if (e.key === "Escape") {
+      input.blur();
+    }
+  });
+}
+
+function checkbox(sel, key, onChange) {
+  const box = $(sel);
+  box.checked = store.get(key, "1") === "1";
+  box.onchange = () => {
+    store.set(key, box.checked ? "1" : "0");
+    onChange(box.checked);
+  };
+  onChange(box.checked);
 }
 
 export function initUi() {
@@ -78,20 +107,15 @@ export function initUi() {
     else jump(e.shiftKey ? -1 : 1);
   };
   $("#t-history").onclick = historySearch;
-  try { setExcludes(JSON.parse(store.get("exclude", "[]"))); } catch { setExcludes([]); }
-  $("#exclude").onkeydown = (e) => {
-    const input = e.target, v = input.value.trim(), srcs = state.exclude.map((x) => x.src);
-    if (e.key === "Enter" && v) {
-      e.preventDefault();
-      if (!parsePattern(v)) return;
-      if (!srcs.includes(v)) setExcludes([...srcs, v]);
-      input.value = "";
-    } else if (e.key === "Backspace" && !input.value && srcs.length) {
-      setExcludes(srcs.slice(0, -1));
-    } else if (e.key === "Escape") {
-      input.blur();
-    }
-  };
+  chipInput("#exclude", "#excludes", "exclude", (list) => {
+    state.exclude = list.map((src) => ({ src, re: parsePattern(src) })).filter((e) => e.re);
+    refilter();
+  }, parsePattern);
+  chipInput("#hide-field", "#hidden-fields", "hiddenFields", (list) => {
+    state.hiddenFields = new Set(list);
+    rerenderAll();
+    relayout();
+  });
   $("#back-live").onclick = leaveSearch;
   $("#trace").onkeydown = (e) => {
     const id = e.target.value.trim();
@@ -111,7 +135,16 @@ export function initUi() {
   $("#show-all").checked = store.get("showAll", "0") === "1";
   $("#show-all").onchange = (e) => { store.set("showAll", e.target.checked ? "1" : "0"); renderList(); };
 
-  toggle("#t-ts", "ts", "1", (on) => { document.body.classList.toggle("no-ts", !on); relayout(); });
+  for (const [col, key] of [["ts", "ts"], ["lvl", "colLevel"], ["src", "colSource"]]) {
+    checkbox(`#col-${col}`, key, (on) => { document.body.classList.toggle(`no-${col}`, !on); relayout(); });
+  }
+  const cols = $("#cols");
+  cols.addEventListener("beforetoggle", (e) => {
+    if (e.newState !== "open") return;
+    const r = $("#t-cols").getBoundingClientRect();
+    cols.style.top = `${r.bottom + 4}px`;
+    cols.style.left = `${Math.max(8, r.right - 240)}px`;
+  });
   toggle("#t-wrap", "wrap", "1", (on) => { document.body.classList.toggle("wrap", on); relayout(); });
   toggle("#t-filter", "filterMode", "0", (on) => { state.filterMode = on; refilter(); });
 
@@ -158,7 +191,7 @@ export function initUi() {
     G: () => $("#jump").click(),
     f: () => $("#t-filter").click(),
     w: () => $("#t-wrap").click(),
-    t: () => $("#t-ts").click(),
+    t: () => $("#col-ts").click(),
     0: () => setLevel(""),
     1: () => setLevel("error"),
     2: () => setLevel("warn"),
