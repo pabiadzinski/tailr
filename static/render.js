@@ -36,10 +36,14 @@ function jsonToHtml(plain, layout) {
   const obj = JSON.parse(plain);
   const msg = layout.msg ? valueText(obj[layout.msg]) : "";
   let html = highlight(msg);
-  const fields = layout.fields.filter((k) => !state.hiddenFields.has(k));
+  const colors = state.fieldColors;
+  const shown = layout.fields.filter((k) => !state.hiddenFields.has(k));
+  const fields = [...shown.filter((k) => colors[k]), ...shown.filter((k) => !colors[k])];
   if (fields.length) {
-    html += (msg ? "  " : "") + '<span class="kv">' +
-      fields.map((k) => `<b data-key="${esc(k)}">${esc(k)}=</b>${highlight(valueText(obj[k]))}`).join(" ") + "</span>";
+    html += (msg ? "  " : "") + '<span class="kv">' + fields.map((k) => {
+      const field = `<b data-key="${esc(k)}">${esc(k)}=</b>${highlight(valueText(obj[k]))}`;
+      return colors[k] ? `<span class="fc hl-${colors[k]}">${field}</span>` : field;
+    }).join(" ") + "</span>";
   }
   return html;
 }
@@ -88,7 +92,8 @@ export function renderLine(l) {
     return el;
   }
   const source = state.sources.length > 1 ? state.sources[l.c] : null;
-  el.className = "row" + (l.level === "error" ? " err" : "") + (l.json ? " json" : "");
+  const hl = state.highlights.find((h) => h.test(l))?.color;
+  el.className = "row" + (l.level === "error" ? " err" : "") + (l.json ? " json" : "") + (hl ? ` hl hl-${hl}` : "");
   el.innerHTML =
     `<span class="ts" title="${esc(l.ts)}">${fmtTime(l.ts)}</span>` +
     `<span class="lvl ${l.level}">${LEVEL_LABEL[l.level] || "·"}</span>` +

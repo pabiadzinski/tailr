@@ -80,7 +80,7 @@
     <span class="grow"></span>
     <button class="err-chip" id="t-errors" hidden></button>
     <span class="counter" id="counter"></span>
-    <button class="icon-btn" id="t-cols" popovertarget="cols" title="Columns">
+    <button class="icon-btn" id="t-cols" popovertarget="cols" title="Columns and highlights">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M15 4v16"/></svg>
     </button>
     <div id="cols" popover>
@@ -90,6 +90,11 @@
       <div class="search">
         <span class="chips" id="hidden-fields"></span>
         <input id="hide-field" placeholder="Hide JSON field" title="Enter hides this key of JSON lines, Backspace shows the last one again" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="swatches" id="hl-colors"><span>Highlight lines</span><button data-color="yellow"></button><button data-color="red"></button><button data-color="green"></button><button data-color="blue"></button><button data-color="purple"></button></div>
+      <div class="search">
+        <span class="chips" id="highlights"></span>
+        <input id="highlight" placeholder="Text, /regex/ or key=value" title="Enter highlights matching lines in the chosen color, Backspace removes the last rule" autocomplete="off" spellcheck="false">
       </div>
     </div>
     <button class="icon-btn on" id="t-wrap" title="Wrap lines">
@@ -120,6 +125,8 @@
 <div id="field-menu" popover>
   <button id="fm-hide"></button>
   <button id="fm-exclude"></button>
+  <div class="swatches" id="fm-field" title="Highlight this field"><span>Field</span><button data-color="yellow"></button><button data-color="red"></button><button data-color="green"></button><button data-color="blue"></button><button data-color="purple"></button><button data-color="" title="No highlight">×</button></div>
+  <div class="swatches" id="fm-lines" title="Highlight lines with this value"><span>Lines</span><button data-color="yellow"></button><button data-color="red"></button><button data-color="green"></button><button data-color="blue"></button><button data-color="purple"></button><button data-color="" title="No highlight">×</button></div>
 </div>
 
 <dialog id="help">

@@ -27,6 +27,10 @@ export const state = {
   exclude: [],
   // JSON keys not shown as fields.
   hiddenFields: new Set(),
+  // Highlight color per JSON key; these keys come first.
+  fieldColors: {},
+  // Lines for which test returns true get color; the first match wins.
+  highlights: [],
   level: "",
   follow: true,
 };

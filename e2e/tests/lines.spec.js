@@ -104,3 +104,47 @@ test("hides and excludes JSON fields from a line", async ({ page }) => {
   await page.locator("#fm-hide").click();
   await expect(first.locator(".msg")).toHaveText("job done  job=1");
 });
+
+test("highlights a JSON field and shows it first", async ({ page }) => {
+  await page.goto("/#e2e-json-1");
+  const failed = page.locator("#rows .row", { hasText: "job failed" });
+  await expect(failed.locator(".msg")).toHaveText("job failed  job=31 err=context deadline exceeded");
+
+  await failed.locator('[data-key="err"]').click();
+  await page.locator('#fm-field [data-color="red"]').click();
+  await expect(failed.locator(".fc.hl-red")).toHaveText("err=context deadline exceeded");
+  await expect(failed.locator(".msg")).toHaveText("job failed  err=context deadline exceeded job=31");
+
+  await page.reload();
+  await expect(failed.locator(".fc.hl-red")).toHaveText("err=context deadline exceeded");
+  await failed.locator('[data-key="err"]').click();
+  await expect(page.locator('#fm-field [data-color="red"]')).toHaveClass("on");
+  await page.locator('#fm-field [data-color=""]').click();
+  await expect(failed.locator(".fc")).toHaveCount(0);
+});
+
+test("highlights lines by rule", async ({ page }) => {
+  await page.goto("/#e2e-json-1,e2e-text-1");
+  const row = (text) => page.locator("#rows .row", { hasText: text });
+
+  await page.locator("#t-cols").click();
+  await page.locator('#hl-colors [data-color="green"]').click();
+  await page.locator("#highlight").fill("slow request");
+  await page.locator("#highlight").press("Enter");
+  await expect(page.locator("#highlights button.hl-green")).toHaveText("slow request");
+  await expect(row("slow request")).toHaveClass(/hl-green/);
+  await expect(page.locator("#rows .row.hl")).toHaveCount(1);
+  await page.keyboard.press("Escape");
+
+  await row("job failed").locator('[data-key="job"]').click();
+  await page.locator('#fm-lines [data-color="red"]').click();
+  await expect(row("job failed")).toHaveClass(/hl-red/);
+  await expect(page.locator("#rows .row.hl")).toHaveCount(2);
+
+  await page.reload();
+  await expect(row("job failed")).toHaveClass(/hl-red/);
+  await row("job failed").locator('[data-key="job"]').click();
+  await expect(page.locator('#fm-lines [data-color="red"]')).toHaveClass("on");
+  await page.locator('#fm-lines [data-color=""]').click();
+  await expect(page.locator("#rows .row.hl")).toHaveCount(1);
+});

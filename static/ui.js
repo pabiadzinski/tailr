@@ -57,7 +57,8 @@ function excludeRule(src) {
 }
 
 // Values entered one at a time and shown as removable chips, kept in the store under key.
-function chipInput(inputSel, chipsSel, key, onChange, valid = () => true) {
+// wrap turns the typed text into the stored value, label renders a stored value on its chip.
+function chipInput(inputSel, chipsSel, key, onChange, { valid = () => true, wrap = (v) => v, label = (b, v) => { b.textContent = v; } } = {}) {
   const input = $(inputSel);
   let list = [];
   const set = (next) => {
@@ -65,21 +66,22 @@ function chipInput(inputSel, chipsSel, key, onChange, valid = () => true) {
     store.set(key, JSON.stringify(list));
     $(chipsSel).replaceChildren(...list.map((v) => {
       const b = document.createElement("button");
-      b.textContent = v;
-      b.title = `Remove ${v}`;
+      label(b, v);
+      b.title = `Remove ${b.textContent}`;
       b.onclick = () => set(list.filter((x) => x !== v));
       return b;
     }));
     onChange(list);
   };
-  const add = (v) => { if (valid(v) && !list.includes(v)) set([...list, v]); };
+  const add = (v) => { if (!list.includes(v)) set([...list, v]); };
+  const remove = (v) => set(list.filter((x) => x !== v));
   try { set(JSON.parse(store.get(key, "[]"))); } catch { set([]); }
   input.addEventListener("keydown", (e) => {
     const v = input.value.trim();
     if (e.key === "Enter" && v) {
       e.preventDefault();
       if (!valid(v)) return;
-      add(v);
+      add(wrap(v));
       input.value = "";
     } else if (e.key === "Backspace" && !input.value && list.length) {
       set(list.slice(0, -1));
@@ -87,19 +89,51 @@ function chipInput(inputSel, chipsSel, key, onChange, valid = () => true) {
       input.blur();
     }
   });
-  return add;
+  return { add, remove, has: (v) => list.includes(v) };
 }
 
-let hideField, addExclude;
+let hiddenFields, excludes, highlights;
+let hlColor = "yellow";
+
+// A highlight is stored as "color rule".
+const splitHighlight = (v) => [v.slice(0, v.indexOf(" ")), v.slice(v.indexOf(" ") + 1)];
+
+function pickSwatch(row, color) {
+  for (const b of row.querySelectorAll("button")) b.classList.toggle("on", b.dataset.color === color);
+}
+
+function setFieldColors(colors) {
+  state.fieldColors = colors;
+  store.set("fieldColors", JSON.stringify(colors));
+  rerenderAll();
+  relayout();
+}
 
 export function openFieldMenu(x, y, key, value) {
   const menu = $("#field-menu");
   // A value that looks like a regex is excluded as an exact one.
   const rule = `${key}=${REGEX.test(value) ? `/^${RegExp.escape(value)}$/` : value}`;
   $("#fm-hide").textContent = `Hide field ${key}`;
-  $("#fm-hide").onclick = () => { hideField(key); menu.hidePopover(); };
+  $("#fm-hide").onclick = () => { hiddenFields.add(key); menu.hidePopover(); };
   $("#fm-exclude").textContent = `Exclude ${rule}`;
-  $("#fm-exclude").onclick = () => { addExclude(rule); menu.hidePopover(); };
+  $("#fm-exclude").onclick = () => { excludes.add(rule); menu.hidePopover(); };
+  pickSwatch($("#fm-field"), state.fieldColors[key] ?? "");
+  $("#fm-field").onclick = (e) => {
+    const color = e.target.dataset.color;
+    if (color === undefined) return;
+    const { [key]: _, ...rest } = state.fieldColors;
+    setFieldColors(color ? { ...rest, [key]: color } : rest);
+    menu.hidePopover();
+  };
+  const current = state.highlights.find((h) => h.src === rule);
+  pickSwatch($("#fm-lines"), current?.color ?? "");
+  $("#fm-lines").onclick = (e) => {
+    const color = e.target.dataset.color;
+    if (color === undefined) return;
+    if (current) highlights.remove(`${current.color} ${rule}`);
+    if (color) highlights.add(`${color} ${rule}`);
+    menu.hidePopover();
+  };
   menu.showPopover();
   menu.style.left = `${Math.min(x, innerWidth - menu.offsetWidth - 8)}px`;
   menu.style.top = `${Math.min(y + 8, innerHeight - menu.offsetHeight - 8)}px`;
@@ -145,11 +179,33 @@ export function initUi() {
     else jump(e.shiftKey ? -1 : 1);
   };
   $("#t-history").onclick = historySearch;
-  addExclude = chipInput("#exclude", "#excludes", "exclude", (list) => {
+  excludes = chipInput("#exclude", "#excludes", "exclude", (list) => {
     state.exclude = list.map(excludeRule).filter(Boolean);
     refilter();
-  }, excludeRule);
-  hideField = chipInput("#hide-field", "#hidden-fields", "hiddenFields", (list) => {
+  }, { valid: excludeRule });
+  highlights = chipInput("#highlight", "#highlights", "highlights", (list) => {
+    state.highlights = list.map((v) => {
+      const [color, src] = splitHighlight(v);
+      return { color, src, test: excludeRule(src) };
+    }).filter((h) => h.test);
+    rerenderAll();
+  }, {
+    valid: excludeRule,
+    wrap: (v) => `${hlColor} ${v}`,
+    label: (b, v) => {
+      const [color, src] = splitHighlight(v);
+      b.textContent = src;
+      b.className = `hl hl-${color}`;
+    },
+  });
+  pickSwatch($("#hl-colors"), hlColor);
+  $("#hl-colors").onclick = (e) => {
+    if (!e.target.dataset.color) return;
+    hlColor = e.target.dataset.color;
+    pickSwatch($("#hl-colors"), hlColor);
+  };
+  try { state.fieldColors = JSON.parse(store.get("fieldColors", "{}")); } catch {}
+  hiddenFields = chipInput("#hide-field", "#hidden-fields", "hiddenFields", (list) => {
     state.hiddenFields = new Set(list);
     rerenderAll();
     relayout();
