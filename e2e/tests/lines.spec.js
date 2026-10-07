@@ -79,3 +79,28 @@ test("hides columns and JSON fields", async ({ page }) => {
   await expect(failed.locator(".lvl")).toHaveText("ERR");
   await expect(failed.locator(".msg")).toHaveText("json-1job failed  err=context deadline exceeded");
 });
+
+test("hides and excludes JSON fields from a line", async ({ page }) => {
+  await page.goto("/#e2e-json-1");
+  const counter = page.locator("#counter");
+  await expect(counter).toHaveText("31 lines");
+
+  const failed = page.locator("#rows .row", { hasText: "job failed" });
+  await failed.locator('[data-key="job"]').click();
+  await page.locator("#fm-exclude").click();
+  await expect(page.locator("#excludes button")).toHaveText(["job=31"]);
+  await expect(counter).toHaveText("30 / 31 lines");
+  await expect(page.locator("#rows .row.json pre")).toHaveCount(0);
+
+  for (const rule of ["job=/^[12]\\d$/", "job=3"]) {
+    await page.locator("#exclude").fill(rule);
+    await page.locator("#exclude").press("Enter");
+  }
+  await expect(counter).toHaveText("9 / 31 lines");
+
+  const first = page.locator("#rows .row").first();
+  await expect(first.locator(".msg")).toHaveText('job done  job=1 tags=["a"]');
+  await first.locator('[data-key="tags"]').click();
+  await page.locator("#fm-hide").click();
+  await expect(first.locator(".msg")).toHaveText("job done  job=1");
+});

@@ -23,7 +23,7 @@ export const state = {
   hit: null,
   filter: null,
   filterMode: false,
-  // Lines matching any of these are hidden.
+  // Lines for which any of these returns true are hidden.
   exclude: [],
   // JSON keys not shown as fields.
   hiddenFields: new Set(),

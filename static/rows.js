@@ -1,6 +1,7 @@
 import { $, state } from "./state.js";
 import { invalidate } from "./list.js";
-import { prettyJson } from "./render.js";
+import { prettyJson, valueText } from "./render.js";
+import { openFieldMenu } from "./ui.js";
 
 async function copyText(text) {
   try {
@@ -22,6 +23,11 @@ export function initRows() {
     const l = row.line;
     if (e.target.closest(".trace")) {
       location.hash = "trace=" + encodeURIComponent(l.trace);
+      return;
+    }
+    const key = e.target.closest("[data-key]")?.dataset.key;
+    if (key) {
+      openFieldMenu(e.clientX, e.clientY, key, valueText(JSON.parse(l.plain)[key]));
       return;
     }
     const btn = e.target.closest(".copy");

@@ -57,7 +57,7 @@ function admit(l) {
     return;
   }
   if (state.level && l.level !== state.level) return;
-  if (state.exclude.some((e) => e.re.test(l.plain))) return;
+  if (state.exclude.some((test) => test(l))) return;
   const hit = !!state.filter?.test(l.plain);
   if (state.filterMode && state.filter && !hit) return;
   state.view.push(l);

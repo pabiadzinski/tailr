@@ -2,16 +2,19 @@ import { $, logs, state, store } from "./state.js";
 import { jump, jumpToError, refilter, relayout, rerenderAll, resetBuffer, saveAnchor, schedulePaint, setLevel, showSeq } from "./list.js";
 import { clearErrors, renderList } from "./containers.js";
 import { connect, leaveSearch, searchHistory } from "./stream.js";
+import { valueText } from "./render.js";
 
 function applyTheme(t) {
   if (t) document.documentElement.dataset.theme = t;
   else delete document.documentElement.dataset.theme;
 }
 
+const REGEX = /^\/(.+)\/([a-z]*)$/;
+
 // Text or /regex/flags; null when empty or invalid.
 function parsePattern(v) {
   if (!v) return null;
-  const m = v.match(/^\/(.+)\/([a-z]*)$/);
+  const m = v.match(REGEX);
   try { return m ? new RegExp(m[1], m[2].replace(/[gy]/g, "")) : new RegExp(RegExp.escape(v), "i"); }
   catch { return null; }
 }
@@ -35,6 +38,24 @@ function toggle(btnSel, key, def, onChange) {
   btn.onclick = () => apply(!btn.classList.contains("on"));
 }
 
+// key=value hides JSON lines whose key has exactly this value, or matches key=/regex/;
+// other lines are matched as text. Anything else is a text or /regex/ pattern.
+function excludeRule(src) {
+  const text = parsePattern(src);
+  const m = src.match(/^([\w.@-]+)=(.*)$/);
+  if (!m || !text) return text && ((l) => text.test(l.plain));
+  const [, key, value] = m;
+  const re = REGEX.test(value) ? parsePattern(value) : null;
+  if (REGEX.test(value) && !re) return null;
+  return (l) => {
+    if (!l.json) return text.test(l.plain);
+    l.obj ??= JSON.parse(l.plain);
+    if (!(key in l.obj)) return false;
+    const v = valueText(l.obj[key]);
+    return re ? re.test(v) : v === value;
+  };
+}
+
 // Values entered one at a time and shown as removable chips, kept in the store under key.
 function chipInput(inputSel, chipsSel, key, onChange, valid = () => true) {
   const input = $(inputSel);
@@ -51,13 +72,14 @@ function chipInput(inputSel, chipsSel, key, onChange, valid = () => true) {
     }));
     onChange(list);
   };
+  const add = (v) => { if (valid(v) && !list.includes(v)) set([...list, v]); };
   try { set(JSON.parse(store.get(key, "[]"))); } catch { set([]); }
   input.addEventListener("keydown", (e) => {
     const v = input.value.trim();
     if (e.key === "Enter" && v) {
       e.preventDefault();
       if (!valid(v)) return;
-      if (!list.includes(v)) set([...list, v]);
+      add(v);
       input.value = "";
     } else if (e.key === "Backspace" && !input.value && list.length) {
       set(list.slice(0, -1));
@@ -65,6 +87,22 @@ function chipInput(inputSel, chipsSel, key, onChange, valid = () => true) {
       input.blur();
     }
   });
+  return add;
+}
+
+let hideField, addExclude;
+
+export function openFieldMenu(x, y, key, value) {
+  const menu = $("#field-menu");
+  // A value that looks like a regex is excluded as an exact one.
+  const rule = `${key}=${REGEX.test(value) ? `/^${RegExp.escape(value)}$/` : value}`;
+  $("#fm-hide").textContent = `Hide field ${key}`;
+  $("#fm-hide").onclick = () => { hideField(key); menu.hidePopover(); };
+  $("#fm-exclude").textContent = `Exclude ${rule}`;
+  $("#fm-exclude").onclick = () => { addExclude(rule); menu.hidePopover(); };
+  menu.showPopover();
+  menu.style.left = `${Math.min(x, innerWidth - menu.offsetWidth - 8)}px`;
+  menu.style.top = `${Math.min(y + 8, innerHeight - menu.offsetHeight - 8)}px`;
 }
 
 function checkbox(sel, key, onChange) {
@@ -107,11 +145,11 @@ export function initUi() {
     else jump(e.shiftKey ? -1 : 1);
   };
   $("#t-history").onclick = historySearch;
-  chipInput("#exclude", "#excludes", "exclude", (list) => {
-    state.exclude = list.map((src) => ({ src, re: parsePattern(src) })).filter((e) => e.re);
+  addExclude = chipInput("#exclude", "#excludes", "exclude", (list) => {
+    state.exclude = list.map(excludeRule).filter(Boolean);
     refilter();
-  }, parsePattern);
-  chipInput("#hide-field", "#hidden-fields", "hiddenFields", (list) => {
+  }, excludeRule);
+  hideField = chipInput("#hide-field", "#hidden-fields", "hiddenFields", (list) => {
     state.hiddenFields = new Set(list);
     rerenderAll();
     relayout();

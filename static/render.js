@@ -30,7 +30,7 @@ function segsToHtml(plain, segs) {
   return html;
 }
 
-const valueText = (v) => (typeof v === "string" ? v : JSON.stringify(v));
+export const valueText = (v) => (typeof v === "string" ? v : JSON.stringify(v));
 
 function jsonToHtml(plain, layout) {
   const obj = JSON.parse(plain);
@@ -39,7 +39,7 @@ function jsonToHtml(plain, layout) {
   const fields = layout.fields.filter((k) => !state.hiddenFields.has(k));
   if (fields.length) {
     html += (msg ? "  " : "") + '<span class="kv">' +
-      fields.map((k) => `<b>${esc(k)}=</b>${highlight(valueText(obj[k]))}`).join(" ") + "</span>";
+      fields.map((k) => `<b data-key="${esc(k)}">${esc(k)}=</b>${highlight(valueText(obj[k]))}`).join(" ") + "</span>";
   }
   return html;
 }
